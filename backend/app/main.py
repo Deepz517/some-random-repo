@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from app.api.endpoints import landlords, tenants, properties, leases, payments, utility_bills, auth
+from app.api.endpoints import landlords, tenants, properties, leases, payments, utility_bills, auth, analytics
 from app.core.scheduler import start_scheduler
 
 @asynccontextmanager
@@ -17,6 +17,7 @@ app.include_router(leases.router, prefix="/leases", tags=["leases"])
 app.include_router(payments.router, prefix="/payments", tags=["payments"])
 app.include_router(utility_bills.router, prefix="/utility_bills", tags=["utility_bills"])
 app.include_router(auth.router, tags=["auth"])
+app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 
 @app.get("/")
 async def root():

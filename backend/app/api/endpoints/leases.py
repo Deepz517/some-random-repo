@@ -43,3 +43,18 @@ async def read_lease(lease_id: str, current_user = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Not authorized to access this lease")
 
     return Lease(**lease)
+
+@router.get("/expiring", response_model=List[Lease], dependencies=[Depends(require_role("LANDLORD"))])
+async def read_expiring_leases(current_user = Depends(get_current_user)):
+    today = date.today()
+    ninety_days_from_now = today + timedelta(days=90)
+
+    properties = await database.properties.find({"landlord_id": current_user.id}).to_list(1000)
+    property_ids = [p["_id"] for p in properties]
+
+    leases = await database.leases.find({
+        "property_id": {"$in": property_ids},
+        "end_date": {"$gte": today, "$lte": ninety_days_from_now}
+    }).to_list(1000)
+
+    return [Lease(**lease) for lease in leases]

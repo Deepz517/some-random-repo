@@ -1,5 +1,7 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File
+from fastapi.responses import FileResponse
 from typing import List
+import aiofiles
 from app.models.billing import UtilityBill
 from app.db.database import database
 from app.api.deps import require_role, get_current_user
@@ -49,3 +51,22 @@ async def read_utility_bill(utility_bill_id: str, current_user = Depends(get_cur
         raise HTTPException(status_code=403, detail="Not authorized to access this utility bill")
 
     return UtilityBill(**utility_bill)
+
+@router.post("/{utility_bill_id}/upload_image", dependencies=[Depends(require_role("LANDLORD"))])
+async def upload_utility_bill_image(utility_bill_id: str, file: UploadFile = File(...)):
+    utility_bill = await database.utility_bills.find_one({"_id": utility_bill_id})
+    if not utility_bill:
+        raise HTTPException(status_code=404, detail="Utility bill not found")
+
+    file_path = f"uploads/{file.filename}"
+    async with aiofiles.open(file_path, 'wb') as out_file:
+        content = await file.read()
+        await out_file.write(content)
+
+    await database.utility_bills.update_one({"_id": utility_bill_id}, {"$set": {"image_url": file_path}})
+
+    return {"filename": file.filename, "file_path": file_path}
+
+@router.get("/images/{filename}")
+async def get_utility_bill_image(filename: str):
+    return FileResponse(f"uploads/{filename}")

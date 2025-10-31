@@ -12,6 +12,7 @@ class Payment(BaseModel):
     payment_method: str
     note_receipt_reference: Optional[str]
     last_notified: Optional[date]
+    status: str = "PENDING"
 
     @field_validator('note_receipt_reference')
     def validate_note_receipt_reference(cls, v, info):
